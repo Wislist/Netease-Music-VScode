@@ -604,6 +604,7 @@ export type WebviewMessage =
   | { type: "ready" }
   | { type: "cmd"; cmd: WebviewCommand; payload?: any }
   | { type: "time"; position: number; duration: number; buffered?: number }
+  | { type: "spectrum"; bands: number[] }
   | { type: "ended" }
   | { type: "loadError"; message: string }
   | { type: "nativeBegin"; songId: number; sampleRate: number; channels: number; length: number; bits: number; integer?: boolean }

@@ -4,7 +4,6 @@ import { buildHtml } from "./surface";
 
 export interface MainPanelDeps {
   handleCommand: (cmd: string, payload?: unknown, surface?: "main") => Promise<void> | void;
-  onAudio?: (msg: WebviewMessage) => void;
   onVisibility?: (visible: boolean) => void;
 }
 
@@ -71,9 +70,7 @@ export class MainPanelProvider implements vscode.Disposable {
     }
     if (msg.type === "cmd") {
       await this.deps.handleCommand(msg.cmd, msg.payload, "main");
-      return;
     }
-    this.deps.onAudio?.(msg);
   }
 
   post(msg: HostMessage): void {

@@ -193,7 +193,6 @@ export class App implements vscode.Disposable {
   private localTracks: LocalTrackView[] = [];
   private playlistOrder: number[] = [];
   private likedHydrated = false;
-  private audioOwner: "sidebar" | "main" = "sidebar";
   private localCount = 0;
   private cloudTracks: Track[] = [];
   private qrTimer?: NodeJS.Timeout;
@@ -232,12 +231,14 @@ export class App implements vscode.Disposable {
     };
     this.sidebar = new SidebarViewProvider(ctx, {
       ...hostDeps,
-      onAudio: (msg: WebviewMessage) => void this.player.onMessage(msg),
+      onAudio: (msg: WebviewMessage) => {
+        if (msg.type === "spectrum") this.routePlayerMessage(msg);
+        else void this.player.onMessage(msg);
+      },
       onVisibility: () => undefined,
     });
     this.mainPanel = new MainPanelProvider(ctx, {
       ...hostDeps,
-      onAudio: (msg: WebviewMessage) => void this.player.onMessage(msg),
       onVisibility: () => undefined,
     });
     this.settingsPanel = new SettingsPanelProvider(ctx, hostDeps);
@@ -549,31 +550,19 @@ export class App implements vscode.Disposable {
   // ------------------------------------------------------------ webview glue
 
   private routePlayerMessage(msg: HostMessage): void {
-    if (msg.type === "load") {
-      // WebAudio must live in the editor webview when it is visible so the
-      // click that started playback still counts as a user gesture. Native
-      // output stays in the persistent sidebar host.
-      if (!msg.request.native && this.mainPanel.isReady) {
-        this.audioOwner = "main";
-        this.mainPanel.post(msg);
-      } else {
-        this.audioOwner = "sidebar";
-        this.sidebar.post(msg);
-      }
-      return;
-    }
+    // Keep playback in the retained sidebar Webview, independent of editor tabs.
     if (
+      msg.type === "load" ||
       msg.type === "control" ||
       msg.type === "nativeReady" ||
       msg.type === "nativePcmAck" ||
       msg.type === "nativeFallback"
     ) {
-      const target = this.audioOwner === "main" && this.mainPanel.isReady ? this.mainPanel : this.sidebar;
-      target.post(msg);
+      this.sidebar.post(msg);
       return;
     }
     if (msg.type === "spectrum") {
-      if (this.mainPanel.isReady) this.mainPanel.post(msg);
+      if (this.mainPanel.visible) this.mainPanel.post(msg);
       return;
     }
     if (msg.type === "playerError" || msg.type === "toast") {

@@ -18,7 +18,10 @@ declare function acquireVsCodeApi(): {
 
 const vscode = acquireVsCodeApi();
 const send = (cmd: WebviewCommand, payload?: unknown): void => vscode.postMessage({ type: "cmd", cmd, payload });
-const audio = new AudioEngine((message) => vscode.postMessage(message));
+const audio = new AudioEngine(
+  (message) => vscode.postMessage(message),
+  (bands) => vscode.postMessage({ type: "spectrum", bands } satisfies WebviewMessage),
+);
 
 const app = document.getElementById("app")!;
 const logo = app.dataset.logo ?? "";
